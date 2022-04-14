@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  db_service:
+    container_name: "db_service"
+    platform: linux/x86_64
+    build:
+      context: .
+      dockerfile: ./containers/db.Dockerfile
+    networks:
+      - default
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "secret"
+      MYSQL_DATABASE: "test"
+      MYSQL_USER: "tester"
+      MYSQL_PASSWORD: "secret"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+  phpmyadmin_service:
+    container_name: "phpmyadmin_service"
+    depends_on:
+      - db_service
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - '8080:80'
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: secret
+  php_service:
+    container_name: "php_service"
+    build:
+      context: .
+      dockerfile: ./containers/php.Dockerfile
+    depends_on:
+      - db_service
+    volumes:
+      - ./:/src
+    command:
+      - /src/containers/install.sh
+    ports:
+      - 8000:8000
+networks:
+  default:
+volumes:
+  mysql_data:
+  db:
+    driver: local
